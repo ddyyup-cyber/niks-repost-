@@ -1,4 +1,4 @@
-# Qwen3-14B Uncensored di Google Colab
+# Qwen3-14B Uncensored di Google Colab (No Error Version)
 
 Model: `mradermacher/Qwen3-14B-Uncensored-GGUF:Q6_K` (12 GB)  
 GPU: Tesla T4 (Colab Free)  
@@ -11,14 +11,15 @@ API Key: `niksganteng098`
 1. Buka [Google Colab](https://colab.research.google.com)
 2. Buat **New notebook**
 3. Runtime → Change runtime type → **T4 GPU** → Save
-4. Copy-paste cell di bawah ini **satu per satu**
+4. Copy-paste cell di bawah ini **satu per satu** (jangan skip)
 
 ---
 
-## Cell 1 – Install zstd
+## Cell 1 – Install zstd + Python package
 
 ```python
 !apt-get update -qq && apt-get install -y zstd
+!pip install -q ollama requests
 ```
 
 ---
@@ -36,13 +37,13 @@ API Key: `niksganteng098`
 ```python
 import subprocess, time
 subprocess.Popen(["ollama", "serve"])
-time.sleep(12)
+time.sleep(15)
 print("Ollama server sudah jalan")
 ```
 
 ---
 
-## Cell 4 – Cek GPU
+## Cell 4 – Cek GPU & Ollama
 
 ```python
 !nvidia-smi
@@ -53,13 +54,13 @@ Harus muncul **Tesla T4**.
 
 ---
 
-## Cell 5 – Download Model (lama, ~12 GB)
+## Cell 5 – Download Model (~12 GB)
 
 ```python
 !ollama pull hf.co/mradermacher/Qwen3-14B-Uncensored-GGUF:Q6_K
 ```
 
-Tunggu sampai selesai (5–15 menit).
+Tunggu sampai selesai (5–15 menit). Jangan di-stop.
 
 ---
 
@@ -76,7 +77,7 @@ hf.co/mradermacher/Qwen3-14B-Uncensored-GGUF:Q6_K   12 GB
 
 ---
 
-## Cell 7 – Test Model
+## Cell 7 – Test Model (Pakai Python ollama)
 
 ```python
 import ollama
@@ -88,11 +89,27 @@ response = ollama.chat(
 print(response['message']['content'])
 ```
 
+### Alternatif Test (kalau ollama error)
+
+```python
+import requests
+
+r = requests.post(
+    "http://localhost:11434/api/chat",
+    json={
+        "model": "hf.co/mradermacher/Qwen3-14B-Uncensored-GGUF:Q6_K",
+        "messages": [{"role": "user", "content": "Halo, siapa kamu?"}],
+        "stream": False
+    }
+)
+print(r.json()["message"]["content"])
+```
+
 Kalau model jawab → **sudah jalan**.
 
 ---
 
-## Cell 8 – Install Cloudflared (buat public API)
+## Cell 8 – Install Cloudflared
 
 ```python
 !wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
@@ -113,7 +130,7 @@ def run_tunnel():
     ])
 
 threading.Thread(target=run_tunnel, daemon=True).start()
-time.sleep(12)
+time.sleep(15)
 print("Tunggu muncul link https://xxxx.trycloudflare.com di output...")
 ```
 
@@ -153,8 +170,21 @@ print(response.choices[0].message.content)
 
 ---
 
+## Troubleshooting
+
+| Error | Solusi |
+|-------|--------|
+| `ModuleNotFoundError: No module named 'ollama'` | Jalankan ulang Cell 1 (`!pip install -q ollama`) |
+| `Connection refused` / model gak jawab | Jalankan ulang Cell 3 (Ollama serve) |
+| GPU gak muncul | Runtime → Change runtime type → T4 GPU |
+| Model hilang setelah restart | Jalankan ulang Cell 5 (pull model) |
+| Tunnel gak muncul link | Tunggu 15–20 detik, atau jalankan ulang Cell 9 |
+
+---
+
 ## Catatan
 
 - Colab free bisa disconnect setelah idle / ~12 jam
-- Kalau runtime restart, harus jalankan ulang dari Cell 3 (Ollama serve) + Cell 5 (kalau model hilang)
+- Kalau runtime restart, jalankan ulang dari **Cell 3** (serve) + **Cell 5** (kalau model hilang)
 - Jangan tutup tab Colab saat model sedang dipakai
+- Warning "systemd is not running" dan "Unable to detect GPU" **boleh diabaikan**
